@@ -76,9 +76,11 @@ def mutate_schedule(schedule, days=60):
             target_day = random.randint(1, days)
         new_schedule[source_day].remove(customer)
         new_schedule[target_day].append(customer)
+
     elif mutation_type == 'order_shuffle':
         target_day = random.choice(list(new_schedule.keys()))
         random.shuffle(new_schedule[target_day])
+
     elif mutation_type == 'cross_day_swap':
         day1, day2 = random.sample(list(new_schedule.keys()), 2)
         if not new_schedule[day1] or not new_schedule[day2]: return new_schedule
