@@ -7,6 +7,8 @@ import copy
 import matplotlib.pyplot as plt
 import time
 
+# creates a customer class to hold customer data
+# each customer has an id, x and y coordinates, and a frequency of visits
 class Customer:
     def __init__(self, id, x, y, frequency):
         self.id = id
@@ -27,12 +29,17 @@ def load_customers(filepath):
                 customers.append(Customer(id, x, y, freq))
     return customers
 
+# calculates the Euclidean distance between two customers locations
 def euclidean(a, b):
     return math.sqrt((a.x - b.x)**2 + (a.y - b.y)**2)
 
+# creates a depot customer at the origin (0,0) with frequency 0
+# this is the starting point for all routes
 def depot():
     return Customer(0, 0, 0, 0)
 
+# generates an initial schedule for the customers as a dictionary
+# each customer is assigned to a random day according to their frequency
 def generate_initial_schedule(customers, days=60):
     schedule = defaultdict(list)
     for customer in customers:
@@ -44,6 +51,7 @@ def generate_initial_schedule(customers, days=60):
         random.shuffle(schedule[day])
     return schedule
 
+# calculates the total distance of a route
 def route_distance(route, customer_lookup):
     total = 0
     d = depot()
@@ -55,6 +63,9 @@ def route_distance(route, customer_lookup):
     total += euclidean(customer_lookup[route[-1]], d)
     return total
 
+# evaluates schedule by calculating the total distance and workload stddev
+# the workload is the distance traveled each day
+# the standard deviation of the workload is used to measure balance
 def evaluate_schedule(schedule, customer_lookup):
     total_distance = 0
     day_distances = {}
@@ -65,9 +76,15 @@ def evaluate_schedule(schedule, customer_lookup):
     workload_std = statistics.stdev(day_distances.values()) if len(day_distances) > 1 else 0
     return (round(total_distance, 2), round(workload_std, 2)), day_distances
 
+# mutates the shedule
+# day_swap: swaps a customer from one day to another
+# order_shuffle: shuffles the order of customers in a day
+# cross_day_swap: swaps customers between two different days
+# the mutation type is chosen randomly
 def mutate_schedule(schedule, days=60):
     new_schedule = copy.deepcopy(schedule)
     mutation_type = random.choice(['day_swap', 'order_shuffle', 'cross_day_swap'])
+
     if mutation_type == 'day_swap':
         source_day = random.choice(list(new_schedule.keys()))
         if not new_schedule[source_day]: return new_schedule
@@ -77,9 +94,11 @@ def mutate_schedule(schedule, days=60):
             target_day = random.randint(1, days)
         new_schedule[source_day].remove(customer)
         new_schedule[target_day].append(customer)
+
     elif mutation_type == 'order_shuffle':
         target_day = random.choice(list(new_schedule.keys()))
         random.shuffle(new_schedule[target_day])
+
     elif mutation_type == 'cross_day_swap':
         day1, day2 = random.sample(list(new_schedule.keys()), 2)
         if not new_schedule[day1] or not new_schedule[day2]: return new_schedule
@@ -92,13 +111,18 @@ def mutate_schedule(schedule, days=60):
         new_schedule[day2].append(c1)
     return new_schedule
 
+# crossover schedules by combining two parents to create a child
+# the crossover point is chosen randomly
 def crossover_schedules(parent1, parent2, customers, days=60):
     child = defaultdict(list)
     split = random.randint(1, days - 1)
+
     for day in range(1, split + 1):
         child[day] = parent1.get(day, [])[:]
+
     for day in range(split + 1, days + 1):
         child[day] = parent2.get(day, [])[:]
+
     visit_counts = defaultdict(int)
     for day, custs in child.items():
         for c in custs:
@@ -124,6 +148,8 @@ def crossover_schedules(parent1, parent2, customers, days=60):
 def dominates(f1, f2):
     return (f1[0] <= f2[0] and f1[1] <= f2[1]) and (f1[0] < f2[0] or f1[1] < f2[1])
 
+# computes the crowding distance for each solution in the population
+# used to maintain diversity in the population
 def compute_crowding(population):
     distances = [f for (_, f) in population]
     n = len(distances)
@@ -144,6 +170,7 @@ def compute_crowding(population):
             crowding[distances_sorted[i][0]] += (next - prev) / norm
     return crowding
 
+# gets the Pareto front from the population
 def get_pareto_front(population):
     unique_fitness = {}
     for s, f in population:
@@ -161,6 +188,8 @@ def get_pareto_front(population):
             pareto.append((s1, f1))
     return pareto
 
+# plots the Pareto front and saves it to a file
+# the x-axis - total distance and the y-axis - workload stddev
 def plot_pareto_front(pareto):
     xs = [f[0] for (_, f) in pareto]
     ys = [f[1] for (_, f) in pareto]
@@ -172,12 +201,14 @@ def plot_pareto_front(pareto):
     plt.grid(True)
     plt.tight_layout()
     plt.savefig("pareto_front.png")
-    print("✅ Saved Pareto front to pareto_front.png")
+    print("Saved Pareto front to pareto_front.png")
 
+# main function to run the genetic algorithm
 if __name__ == '__main__':
     random.seed(42)
     start_time = time.time()
 
+    # Load customers from file
     customers = load_customers('vrp8.txt')
     customer_lookup = {c.id: c for c in customers}
     population_size = 100
@@ -192,6 +223,9 @@ if __name__ == '__main__':
     best_distances = []
     best_stddevs = []
 
+    # Run the genetic algorithm
+    print("Starting genetic algorithm...")
+    print(f"Population size: {population_size}")
     for gen in range(generations):
         if (gen + 1) % 10 == 0:
             print(f"[GENERATION {gen + 1}]")
@@ -242,9 +276,9 @@ if __name__ == '__main__':
 
     knee_point = min(final_front, key=lambda x: math.hypot(*normalize(x[1])))
 
-    print("🌟 Best Distance:", best_distance[1])
-    print("⚖️  Best Balance:", best_balance[1])
-    print("🎯 Knee Point:", knee_point[1])
+    print("Best Distance:", best_distance[1])
+    print("Best Balance:", best_balance[1])
+    print("Knee Point:", knee_point[1])
 
     # Generate heatmaps for knee, distance, and balance solutions
     import seaborn as sns
@@ -263,7 +297,7 @@ if __name__ == '__main__':
         plt.ylabel("Day")
         plt.tight_layout()
         plt.savefig(filename)
-        print(f"🗺️ Saved heatmap to {filename}")
+        print(f"Saved heatmap to {filename}")
 
     # Plot bar chart of route distance per day for each key solution
     def plot_daily_distance_bar(schedule, label, filename):
@@ -279,7 +313,7 @@ if __name__ == '__main__':
         plt.title(f"Daily Route Distances – {label}")
         plt.tight_layout()
         plt.savefig(filename)
-        print(f"📊 Saved bar chart to {filename}")
+        print(f"Saved bar chart to {filename}")
 
     plot_daily_distance_bar(knee_point[0], "Knee Point", "knee_point_barchart.png")
     plot_daily_distance_bar(best_distance[0], "Best Distance", "best_distance_barchart.png")
@@ -288,11 +322,11 @@ if __name__ == '__main__':
     plot_heatmap(knee_point[0], "Knee Point – Customer Visits per Day", "knee_point_heatmap.png")
     plot_heatmap(best_distance[0], "Best Distance – Customer Visits per Day", "best_distance_heatmap.png")
     plot_heatmap(best_balance[0], "Best Balance – Customer Visits per Day", "best_balance_heatmap.png")
-    print("🗺️ Saved heatmap for knee point to knee_point_heatmap.png")
+    print("Saved heatmap for knee point to knee_point_heatmap.png")
 
     plot_pareto_front(final_front)
 
-    # Plot fitness progress with dual Y-axis
+    # Plot fitness progress
     fig, ax1 = plt.subplots(figsize=(10, 5))
 
     ax1.set_xlabel("Generation")
@@ -300,6 +334,7 @@ if __name__ == '__main__':
     ax1.plot(best_distances, color='tab:blue', label='Best Total Distance')
     ax1.tick_params(axis='y', labelcolor='tab:blue')
 
+    # Create a second y-axis for the standard deviation
     ax2 = ax1.twinx()
     ax2.set_ylabel("Best Workload Std Dev", color='tab:orange')
     ax2.plot(best_stddevs, color='tab:orange', label='Best Workload Std Dev')
@@ -308,19 +343,19 @@ if __name__ == '__main__':
     fig.tight_layout()
     plt.title("Fitness Progress Over Generations")
     plt.savefig("fitness_progress.png")
-    print("📈 Saved fitness progress plot to fitness_progress.png")
+    print("Saved fitness progress plot to fitness_progress.png")
 
     # Save fitness to CSV
     with open("fitness_progress.csv", "w") as f:
         f.write("Generation,Best_Distance,Best_StdDev")
         for i in range(generations):
             f.write(f"{i+1},{best_distances[i]},{best_stddevs[i]}")
-    print("📄 Saved fitness progress data to fitness_progress.csv")
+    print("Saved fitness progress data to fitness_progress.csv")
 
     # Save Pareto front to CSV for reporting
     with open("pareto_front.csv", "w") as f:
         f.write("Total_Distance,Workload_StdDev")
         for _, (dist, std) in final_front:
             f.write(f"{dist},{std}")
-    print("📄 Saved Pareto front to pareto_front.csv")
-    print(f"⏱️ Completed in {time.time() - start_time:.2f} seconds")
+    print("Saved Pareto front to pareto_front.csv")
+    print(f"Completed in {time.time() - start_time:.2f} seconds")
