@@ -1,4 +1,3 @@
-# PTSP with crowding distance and clean Pareto front
 import random
 import math
 import statistics
@@ -148,28 +147,6 @@ def crossover_schedules(parent1, parent2, customers, days=60):
 def dominates(f1, f2):
     return (f1[0] <= f2[0] and f1[1] <= f2[1]) and (f1[0] < f2[0] or f1[1] < f2[1])
 
-# computes the crowding distance for each solution in the population
-# used to maintain diversity in the population
-def compute_crowding(population):
-    distances = [f for (_, f) in population]
-    n = len(distances)
-    crowding = [0.0] * n
-    for m in range(2):  # two objectives
-        distances_sorted = sorted(enumerate(distances), key=lambda x: x[1][m])
-        crowding[distances_sorted[0][0]] = float('inf')
-        crowding[distances_sorted[-1][0]] = float('inf')
-        f_min = distances_sorted[0][1][m]
-        f_max = distances_sorted[-1][1][m]
-        for i in range(1, n - 1):
-            prev = distances_sorted[i - 1][1][m]
-            next = distances_sorted[i + 1][1][m]
-            if f_max - f_min == 0:
-                norm = 1.0
-            else:
-                norm = f_max - f_min
-            crowding[distances_sorted[i][0]] += (next - prev) / norm
-    return crowding
-
 # gets the Pareto front from the population
 def get_pareto_front(population):
     unique_fitness = {}
@@ -240,7 +217,7 @@ if __name__ == '__main__':
 
         combined = population + new_population
         pareto = get_pareto_front(combined)
-        crowding = compute_crowding(pareto)
+
         # Use dominance-only front for survivor selection
         elite = pareto[:population_size]
 
