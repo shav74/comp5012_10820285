@@ -12,7 +12,6 @@ This project implements a custom multi-objective evolutionary optimiser for the 
   - Fitness progression over generations
   - Customer visit heatmaps
   - Daily route distance bar charts
-  - Route maps for selected solutions
 
 ## Technologies
 - Python 3.12
