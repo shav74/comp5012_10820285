@@ -186,7 +186,7 @@ if __name__ == '__main__':
     start_time = time.time()
 
     # Load customers from file
-    customers = load_customers('vrp8.txt')
+    customers = load_customers('data/vrp8.txt')
     customer_lookup = {c.id: c for c in customers}
     population_size = 100
     generations = 1000
