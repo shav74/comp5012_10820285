@@ -189,7 +189,7 @@ if __name__ == '__main__':
     customers = load_customers('data/vrp8.txt')
     customer_lookup = {c.id: c for c in customers}
     population_size = 100
-    generations = 1000
+    generations = 100
 
     population = []
     for _ in range(population_size):
